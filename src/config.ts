@@ -1,5 +1,5 @@
 export interface Config {
-  anthropicApiKey: string;
+  geminiApiKey: string;
   elevenLabsApiKey: string;
   elevenLabsVoiceId: string;
   higgsfieldApiKey: string;
@@ -8,12 +8,12 @@ export interface Config {
 export function getConfig(): Config {
   const missing: string[] = [];
 
-  const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
   const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
   const elevenLabsVoiceId = process.env.ELEVENLABS_VOICE_ID;
   const higgsfieldApiKey = process.env.HIGGSFIELD_API_KEY;
 
-  if (!anthropicApiKey) missing.push('ANTHROPIC_API_KEY');
+  if (!geminiApiKey) missing.push('GEMINI_API_KEY');
   if (!elevenLabsApiKey) missing.push('ELEVENLABS_API_KEY');
   if (!elevenLabsVoiceId) missing.push('ELEVENLABS_VOICE_ID');
   if (!higgsfieldApiKey) missing.push('HIGGSFIELD_API_KEY');
@@ -27,7 +27,7 @@ export function getConfig(): Config {
   }
 
   return {
-    anthropicApiKey: anthropicApiKey!,
+    geminiApiKey: geminiApiKey!,
     elevenLabsApiKey: elevenLabsApiKey!,
     elevenLabsVoiceId: elevenLabsVoiceId!,
     higgsfieldApiKey: higgsfieldApiKey!,

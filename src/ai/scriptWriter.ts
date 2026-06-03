@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getConfig } from '../config';
 import { HOOK_VARIANTS_PROMPT, FULL_SCRIPT_PROMPT, VIDEO_BRIEF_PROMPT } from './prompts';
 import { log } from '../utils/logger';
@@ -21,19 +21,13 @@ function fillTemplate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`);
 }
 
-async function callClaude(prompt: string): Promise<string> {
+async function callGemini(prompt: string): Promise<string> {
   const config = getConfig();
-  const client = new Anthropic({ apiKey: config.anthropicApiKey });
+  const genAI = new GoogleGenerativeAI(config.geminiApiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 1024,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const block = message.content[0];
-  if (block.type !== 'text') throw new Error('Unexpected response type from Claude');
-  return block.text.trim();
+  const result = await model.generateContent(prompt);
+  return result.response.text().trim();
 }
 
 export async function generateHooks(product: Product): Promise<string[]> {
@@ -45,7 +39,7 @@ export async function generateHooks(product: Product): Promise<string[]> {
     tone: product.tone,
   });
 
-  const raw = await callClaude(prompt);
+  const raw = await callGemini(prompt);
 
   try {
     const cleaned = raw.replace(/```json\n?|\n?```/g, '').trim();
@@ -73,7 +67,7 @@ export async function generateScript(product: Product, selectedHook: string): Pr
     tone: product.tone,
   });
 
-  return callClaude(prompt);
+  return callGemini(prompt);
 }
 
 export async function generateVideoBrief(product: Product, script: string): Promise<string> {
@@ -85,5 +79,5 @@ export async function generateVideoBrief(product: Product, script: string): Prom
     tone: product.tone,
   });
 
-  return callClaude(prompt);
+  return callGemini(prompt);
 }

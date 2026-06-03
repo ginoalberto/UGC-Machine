@@ -193,21 +193,18 @@ program
       }
     }
 
-    // Anthropic
+    // Gemini
     try {
-      await axios.get('https://api.anthropic.com/v1/models', {
-        headers: {
-          'x-api-key': config.anthropicApiKey,
-          'anthropic-version': '2023-06-01',
-        },
-      });
-      log.success('Anthropic API — connected');
+      await axios.get(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${config.geminiApiKey}`
+      );
+      log.success('Gemini API — connected');
     } catch (err) {
       const status = axios.isAxiosError(err) ? err.response?.status : undefined;
       if (status && status < 500) {
-        log.success(`Anthropic API — reachable (status ${status})`);
+        log.success(`Gemini API — reachable (status ${status})`);
       } else {
-        log.error(`Anthropic API — failed: ${err instanceof Error ? err.message : String(err)}`);
+        log.error(`Gemini API — failed: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
   });
