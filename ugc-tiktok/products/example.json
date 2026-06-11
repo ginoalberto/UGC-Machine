@@ -1,0 +1,13 @@
+{
+  "id": "product-001",
+  "name": "Hydrating Vitamin C Face Serum",
+  "category": "beauty",
+  "price": "$34.99",
+  "keyBenefits": ["Fades dark spots in 2 weeks", "Absorbs in 30 seconds, no white cast", "Works on all skin tones"],
+  "targetAudience": "Women 22–38 with uneven skin tone wanting an affordable alternative to high-end serums",
+  "tone": "enthusiastic",
+  "visualStyle": "transformation",
+  "referenceImageUrl": "",
+  "hashtags": ["#tiktokshop", "#skincare", "#vitaminc", "#skintok"],
+  "callToAction": "It's linked in my bio — under $35 and ships fast"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "UGC Pipeline",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:18",
+  "postCreateCommand": "npm install",
+  "remoteEnv": {
+    "GEMINI_API_KEY": "${localEnv:GEMINI_API_KEY}",
+    "ELEVENLABS_API_KEY": "${localEnv:ELEVENLABS_API_KEY}",
+    "ELEVENLABS_VOICE_ID": "${localEnv:ELEVENLABS_VOICE_ID}",
+    "HIGGSFIELD_API_KEY": "${localEnv:HIGGSFIELD_API_KEY}"
+  }
+}
