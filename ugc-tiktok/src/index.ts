@@ -155,7 +155,7 @@ program
     // Gemini
     try {
       const g = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? '');
-      const m = g.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+      const m = g.getGenerativeModel({ model: 'gemini-2.5-flash' });
       await m.generateContent('test');
       log.success('Gemini API        — ✅ connected');
     } catch (err) {

@@ -24,7 +24,7 @@ function fillTemplate(template: string, vars: Record<string, string>): string {
 async function callGemini(prompt: string): Promise<string> {
   const config = getConfig();
   const genAI = new GoogleGenerativeAI(config.geminiApiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   const result = await model.generateContent(prompt);
   return result.response.text().trim();
