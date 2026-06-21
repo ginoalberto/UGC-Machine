@@ -2,7 +2,7 @@ export interface Config {
   geminiApiKey: string;
   elevenLabsApiKey: string;
   elevenLabsVoiceId: string;
-  higgsfieldApiKey: string;
+  heygenApiKey: string;
 }
 
 export function getConfig(): Config {
@@ -11,12 +11,12 @@ export function getConfig(): Config {
   const geminiApiKey      = process.env.GEMINI_API_KEY;
   const elevenLabsApiKey  = process.env.ELEVENLABS_API_KEY;
   const elevenLabsVoiceId = process.env.ELEVENLABS_VOICE_ID;
-  const higgsfieldApiKey  = process.env.HIGGSFIELD_API_KEY;
+  const heygenApiKey      = process.env.HEYGEN_API_KEY;
 
   if (!geminiApiKey)      missing.push('GEMINI_API_KEY');
   if (!elevenLabsApiKey)  missing.push('ELEVENLABS_API_KEY');
   if (!elevenLabsVoiceId) missing.push('ELEVENLABS_VOICE_ID');
-  if (!higgsfieldApiKey)  missing.push('HIGGSFIELD_API_KEY');
+  if (!heygenApiKey)      missing.push('HEYGEN_API_KEY');
 
   if (missing.length > 0) {
     throw new Error(
@@ -30,6 +30,6 @@ export function getConfig(): Config {
     geminiApiKey:      geminiApiKey!,
     elevenLabsApiKey:  elevenLabsApiKey!,
     elevenLabsVoiceId: elevenLabsVoiceId!,
-    higgsfieldApiKey:  higgsfieldApiKey!,
+    heygenApiKey:      heygenApiKey!,
   };
 }

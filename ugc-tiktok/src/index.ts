@@ -6,7 +6,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { runFullPipeline } from './pipeline';
 import { generateHooks, generateScript, generateVideoBrief, Product } from './ai/scriptWriter';
 import { generateVoiceover, listVoices } from './voice/elevenlabs';
-import { generateVideo } from './video/higgsfield';
+import { generateAvatarVideoFromScript, listAvatars } from './video/heygen';
 import { mergeAudioVideo, checkFfmpeg } from './merge/ffmpeg';
 import { loadProduct, generateFilename, ensureOutputDirs, saveScript } from './utils/fileManager';
 import { log } from './utils/logger';
@@ -60,7 +60,7 @@ program
 
 program
   .command('voice')
-  .description('Generate voiceover from a script file')
+  .description('Generate voiceover from a script file (ElevenLabs)')
   .requiredOption('--script <file>', 'Path to .txt script file')
   .action(async (opts: { script: string }) => {
     try {
@@ -77,13 +77,16 @@ program
 
 program
   .command('video')
-  .description('Generate video from brief text')
-  .requiredOption('--brief <text>', 'Video brief / prompt')
-  .action(async (opts: { brief: string }) => {
+  .description('Generate HeyGen avatar video from a script file')
+  .requiredOption('--script <file>', 'Path to .txt script file')
+  .option('--voice-id <id>', 'HeyGen voice ID (overrides HEYGEN_VOICE_ID env var)')
+  .action(async (opts: { script: string; voiceId?: string }) => {
     try {
       ensureOutputDirs();
-      const outPath = path.join('output', 'video', generateFilename('custom', 'video', 'mp4'));
-      await generateVideo(opts.brief, outPath);
+      const script    = fs.readFileSync(opts.script, 'utf-8');
+      const voiceId   = opts.voiceId ?? process.env.HEYGEN_VOICE_ID ?? '';
+      const outPath   = path.join('output', 'final', generateFilename('custom', 'final', 'mp4'));
+      await generateAvatarVideoFromScript(script, voiceId, outPath);
       log.success(`Video saved to ${outPath}`);
     } catch (err) {
       log.error(err instanceof Error ? err.message : String(err));
@@ -93,7 +96,7 @@ program
 
 program
   .command('merge')
-  .description('Merge audio and video files')
+  .description('Merge separate audio and video files with FFmpeg')
   .requiredOption('--audio <file>', 'Path to audio file')
   .requiredOption('--video <file>', 'Path to video file')
   .action(async (opts: { audio: string; video: string }) => {
@@ -118,6 +121,20 @@ program
       voices.forEach((v) =>
         console.log(`  ${v.voice_id}  ${v.name}${v.category ? `  [${v.category}]` : ''}`)
       );
+    } catch (err) {
+      log.error(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+  });
+
+program
+  .command('avatar-list')
+  .description('List available HeyGen avatars')
+  .action(async () => {
+    try {
+      const avatars = await listAvatars();
+      log.success(`${avatars.length} avatars available:\n`);
+      avatars.forEach((a) => console.log(`  ${a.avatar_id}  ${a.avatar_name}`));
     } catch (err) {
       log.error(err instanceof Error ? err.message : String(err));
       process.exit(1);
@@ -172,15 +189,19 @@ program
       log.error(`ElevenLabs API    — ❌ ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    // Higgsfield
+    // HeyGen
     try {
-      const res = await axios.get('https://api.higgsfield.ai/v1/health', {
-        headers: { Authorization: `Bearer ${process.env.HIGGSFIELD_API_KEY ?? ''}` },
+      const res = await axios.get('https://api.heygen.com/v2/avatars', {
+        headers: { 'x-api-key': process.env.HEYGEN_API_KEY ?? '' },
         validateStatus: (s) => s < 500,
       });
-      log.success(`Higgsfield API    — ✅ reachable (${res.status})`);
+      if (res.status === 200) {
+        log.success('HeyGen API        — ✅ connected');
+      } else {
+        log.error(`HeyGen API        — ❌ HTTP ${res.status}`);
+      }
     } catch (err) {
-      log.error(`Higgsfield API    — ❌ ${err instanceof Error ? err.message : String(err)}`);
+      log.error(`HeyGen API        — ❌ ${err instanceof Error ? err.message : String(err)}`);
     }
   });
 
