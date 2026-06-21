@@ -86,6 +86,7 @@ export async function generateAvatarVideoFromScript(
   outputPath: string
 ): Promise<string> {
   const avatarId = process.env.HEYGEN_AVATAR_ID ?? '476c0422f20249aaac7ef2c02840f1a2';
+  const resolvedVoiceId = voiceId || process.env.HEYGEN_VOICE_ID || 'f19e6ed9bd184d9c822e1257b39987dd';
 
   const body = {
     video_inputs: [
@@ -98,7 +99,7 @@ export async function generateAvatarVideoFromScript(
         voice: {
           type: 'text',
           input_text: script,
-          voice_id: voiceId,
+          voice_id: resolvedVoiceId,
         },
         background: {
           type: 'color',

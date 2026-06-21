@@ -6,6 +6,8 @@
     "GEMINI_API_KEY": "${localEnv:GEMINI_API_KEY}",
     "ELEVENLABS_API_KEY": "${localEnv:ELEVENLABS_API_KEY}",
     "ELEVENLABS_VOICE_ID": "${localEnv:ELEVENLABS_VOICE_ID}",
-    "HIGGSFIELD_API_KEY": "${localEnv:HIGGSFIELD_API_KEY}"
+    "HEYGEN_API_KEY": "${localEnv:HEYGEN_API_KEY}",
+    "HEYGEN_AVATAR_ID": "${localEnv:HEYGEN_AVATAR_ID}",
+    "HEYGEN_VOICE_ID": "${localEnv:HEYGEN_VOICE_ID}"
   }
 }
