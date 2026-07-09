@@ -1,6 +1,9 @@
-import { chromium } from 'playwright';
+import { chromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { log } from '../utils/logger';
+
+chromium.use(StealthPlugin());
 
 export interface ScrapedProduct {
   id: string;
@@ -55,24 +58,48 @@ Return only valid JSON, no markdown.`;
 }
 
 export async function scrapeProduct(url: string): Promise<ScrapedProduct> {
-  log.step('Launching browser...');
-  const browser = await chromium.launch({ headless: true });
+  log.step('Launching stealth browser...');
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-blink-features=AutomationControlled',
+    ],
+  });
+
   const context = await browser.newContext({
     userAgent:
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    viewport: { width: 1280, height: 800 },
+    locale: 'en-US',
+    extraHTTPHeaders: {
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    },
   });
+
   const page = await context.newPage();
 
+  // Remove webdriver flag
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+  });
+
   try {
-    log.step(`Navigating to ${url}`);
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    log.step(`Navigating to product page...`);
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 });
 
-    // Wait for product title to appear
-    await page.waitForSelector('[data-testid="pdp-product-title"], h1, .product-title', {
-      timeout: 15000,
-    }).catch(() => {});
+    // Check for captcha/verify page
+    const bodyText = await page.evaluate(() => document.body.innerText.slice(0, 200));
+    if (bodyText.toLowerCase().includes('verify') || bodyText.toLowerCase().includes('captcha')) {
+      // Try waiting and reloading once
+      log.warn('Verification page detected — waiting and retrying...');
+      await page.waitForTimeout(4000);
+      await page.reload({ waitUntil: 'networkidle', timeout: 45000 });
+    }
 
-    // Give JS a moment to hydrate
     await page.waitForTimeout(3000);
 
     const raw = await page.evaluate(() => {
@@ -88,6 +115,8 @@ export async function scrapeProduct(url: string): Promise<ScrapedProduct> {
         '[data-testid="pdp-product-title"]',
         'h1',
         '.product-title',
+        '[class*="ProductTitle"]',
+        '[class*="product-title"]',
         '[class*="title"]',
       ]);
 
@@ -95,11 +124,11 @@ export async function scrapeProduct(url: string): Promise<ScrapedProduct> {
         '[data-testid="pdp-price"]',
         '[class*="price"]',
         '[class*="Price"]',
+        '[class*="sale-price"]',
       ]);
 
-      // Grab all visible text blocks that look like descriptions
       const descEls = document.querySelectorAll(
-        '[data-testid="pdp-description"], [class*="description"], [class*="detail"], [class*="bullet"]'
+        '[data-testid="pdp-description"], [class*="description"], [class*="detail"], [class*="bullet"], [class*="Description"]'
       );
       const description = Array.from(descEls)
         .map((el) => el.textContent?.trim())
@@ -108,26 +137,36 @@ export async function scrapeProduct(url: string): Promise<ScrapedProduct> {
         .slice(0, 2000);
 
       const image = (document.querySelector(
-        '[data-testid="pdp-main-image"] img, .product-image img, img[class*="main"]'
+        '[data-testid="pdp-main-image"] img, .product-image img, img[class*="main"], img[class*="product"]'
       ) as HTMLImageElement)?.src ?? '';
 
-      return { name, price, description, image };
+      // Also grab page title as fallback for name
+      const pageTitle = document.title;
+
+      return { name, price, description, image, pageTitle };
     });
 
     await browser.close();
 
-    if (!raw.name) {
-      throw new Error('Could not extract product name — TikTok Shop may have blocked the request');
+    // Use page title as fallback if name extraction failed
+    const productName = raw.name ||
+      raw.pageTitle.replace(/\s*[-|].*$/, '').trim();
+
+    if (!productName || productName.toLowerCase().includes('verify')) {
+      throw new Error(
+        'TikTok Shop blocked the request with a verification challenge.\n' +
+        'Try running from a different network or paste the product details manually.'
+      );
     }
 
-    log.success(`Found: ${raw.name} — ${raw.price}`);
+    log.success(`Found: ${productName}${raw.price ? ' — ' + raw.price : ''}`);
     log.step('Enriching with Gemini...');
 
-    const enriched = await enrichWithGemini(raw.name, raw.description, raw.price);
+    const enriched = await enrichWithGemini(productName, raw.description, raw.price);
 
     return {
-      id: slugify(raw.name),
-      name: raw.name,
+      id: slugify(productName),
+      name: productName,
       price: raw.price || 'check link',
       referenceImageUrl: raw.image,
       ...enriched,
