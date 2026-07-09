@@ -57,6 +57,21 @@ Return only valid JSON, no markdown.`;
   return JSON.parse(text);
 }
 
+export async function buildProductFromDetails(
+  name: string,
+  price: string,
+  description: string
+): Promise<ScrapedProduct> {
+  const enriched = await enrichWithGemini(name, description, price);
+  return {
+    id: slugify(name),
+    name,
+    price,
+    referenceImageUrl: '',
+    ...enriched,
+  };
+}
+
 export async function scrapeProduct(url: string): Promise<ScrapedProduct> {
   log.step('Launching stealth browser...');
 

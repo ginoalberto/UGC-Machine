@@ -9,7 +9,7 @@ import { generateVoiceover, listVoices } from './voice/elevenlabs';
 import { generateAvatarVideoFromScript, listAvatars } from './video/heygen';
 import { mergeAudioVideo, checkFfmpeg } from './merge/ffmpeg';
 import { loadProduct, generateFilename, ensureOutputDirs, saveScript } from './utils/fileManager';
-import { scrapeProduct } from './scraper/tiktokShop';
+import { scrapeProduct, buildProductFromDetails } from './scraper/tiktokShop';
 import { log } from './utils/logger';
 
 checkFfmpeg();
@@ -174,6 +174,30 @@ program
   .action(async (opts: { url: string; out?: string }) => {
     try {
       const product = await scrapeProduct(opts.url);
+      const outPath = opts.out ?? `../products/${product.id}.json`;
+      const fs = await import('fs');
+      const pth = await import('path');
+      fs.mkdirSync(pth.dirname(pth.resolve(outPath)), { recursive: true });
+      fs.writeFileSync(outPath, JSON.stringify(product, null, 2));
+      log.success(`Product saved to ${outPath}`);
+      console.log(JSON.stringify(product, null, 2));
+    } catch (err) {
+      log.error(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+  });
+
+program
+  .command('new-product')
+  .description('Create a product JSON from name, price, and description (no scraping)')
+  .requiredOption('--name <name>', 'Product name')
+  .requiredOption('--price <price>', 'Product price e.g. $9.99')
+  .requiredOption('--desc <text>', 'Product description or paste from listing')
+  .option('--out <file>', 'Output path (default: products/<slug>.json)')
+  .action(async (opts: { name: string; price: string; desc: string; out?: string }) => {
+    try {
+      log.step('Generating product JSON with Gemini...');
+      const product = await buildProductFromDetails(opts.name, opts.price, opts.desc);
       const outPath = opts.out ?? `../products/${product.id}.json`;
       const fs = await import('fs');
       const pth = await import('path');
