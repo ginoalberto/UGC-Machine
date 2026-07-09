@@ -9,6 +9,7 @@ import { generateVoiceover, listVoices } from './voice/elevenlabs';
 import { generateAvatarVideoFromScript, listAvatars } from './video/heygen';
 import { mergeAudioVideo, checkFfmpeg } from './merge/ffmpeg';
 import { loadProduct, generateFilename, ensureOutputDirs, saveScript } from './utils/fileManager';
+import { scrapeProduct } from './scraper/tiktokShop';
 import { log } from './utils/logger';
 
 checkFfmpeg();
@@ -163,6 +164,27 @@ program
       }
     }
     log.success('Batch complete');
+  });
+
+program
+  .command('fetch-product')
+  .description('Scrape a TikTok Shop product URL and save as a product JSON')
+  .requiredOption('--url <url>', 'TikTok Shop product URL')
+  .option('--out <file>', 'Output path for product JSON (default: products/<slug>.json)')
+  .action(async (opts: { url: string; out?: string }) => {
+    try {
+      const product = await scrapeProduct(opts.url);
+      const outPath = opts.out ?? `../products/${product.id}.json`;
+      const fs = await import('fs');
+      const pth = await import('path');
+      fs.mkdirSync(pth.dirname(pth.resolve(outPath)), { recursive: true });
+      fs.writeFileSync(outPath, JSON.stringify(product, null, 2));
+      log.success(`Product saved to ${outPath}`);
+      console.log(JSON.stringify(product, null, 2));
+    } catch (err) {
+      log.error(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
   });
 
 program
